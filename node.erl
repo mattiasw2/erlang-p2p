@@ -12,8 +12,8 @@ wait(MyId,MyKey,MyVal,Pred,Succ)->
 			if 
 				Key == MyKey ->
 					Who ! {res_lookup,self()};
-				Key <> MyKey ->
-					Succ ! {lookup,Key,self()}
+				Key /= MyKey ->
+					Succ ! {lookup,Key,self()},
 					receive
 						{res_lookup,Pid} -> 
 							Who ! {res_lookup,Pid}
@@ -32,7 +32,7 @@ wait(MyId,MyKey,MyVal,Pred,Succ)->
 			end,
 			wait(MyId,MyKey,MyVal,Pred,Succ);
 			
-		{put,Key,Val,Who} ->
+		{put,Key,Val} ->
 			self() ! {lookup,Key,self()},
 			receive {res_lookup, Pid} -> 
 				Pid ! {change_val,Val}
