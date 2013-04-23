@@ -20,7 +20,10 @@ wait(Mod,Fun,Uid,Next) ->
     receive
         {next,Who} -> Who ! Next, wait(Mod,Fun,Uid,Next) ;
         {set,NNext,Who} -> Who ! ok, wait(Mod,Fun,Uid,NNext) ;
-        start -> io:format("~w ~w ~w ~w", [Mod,Fun,Uid,Next]), Mod:Fun(Uid,Next)
+        start -> io:format("~w ~w ~w ~w", [Mod,Fun,Uid,Next]), 
+            [Id,Cle,Val] = Uid,
+            Mod:Fun(Id,Cle,Val,null,Next)
+
     end.
 
 create(Mod,Fun,[{Cle,{Name,Node}}],1) ->
@@ -32,9 +35,10 @@ create(Mod,Fun,[{Cle,{Name,Node}}],1) ->
 create(Mod,Fun,[X|L],N) ->
 	{P,B} = create(Mod,Fun,L,N-1),
 	{Y,A} = create(Mod,Fun,[X],1),
-	%R = walk({X,A},N-2),
+	%R = walk({P,B},N-2),
 	splice(P,Y),
-	{P, A ++ B}.
+    %splice(P,R),
+	{P, B ++ A}.
 	
 launch(Mod,Fun,List) ->
 	%io:format("~w", List),

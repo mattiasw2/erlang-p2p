@@ -9,6 +9,7 @@ wait(MyId,MyKey,MyVal,Pred,Succ)->
 	receive 
 		%primitives
 		{lookup,Key,Who} -> %changer par une fonction plus pratique
+	io:format("~w : receive ~w,~w,~w ~n",[MyId,lookup,Key,Who]),
 			if 
 				Key == MyKey ->
 					Who ! {res_lookup,self()};
