@@ -33,6 +33,7 @@ between_me_next(Key,MyKey, MyNeighbor)->
 		end
 	end.
 
+
 lookup(Key,Who,MyKey,Succ)->
 	case (between_me_next(Key,MyKey,Succ)) of
 				true  -> Who ! {res_lookup,Succ},true;
@@ -57,36 +58,43 @@ put(Key,Val,MyKey,Succ)->
 
 calcFingerTable(MyId, MyKey, Succ, Who)->
 	if Who /= MyKey ->
-		%io:format("~w : fait le tour de l'anneau :-p ~n",[MyId]),
-		FingerTable = computeList(MyKey,[],0),
-		io:format("I AM : ~w fingerTable : ~w ~n", [MyId,FingerTable]),
+		FingerTable = computeList(MyId, Succ, MyKey,[],0),
+		%io:format("I AM : ~w fingerTable : ~w ~n", [MyId,FingerTable]),
 		Succ ! {calcFingerTable, Who}
 	end.
 
 
 initCalcFingerTable(MyId, MyKey,Succ)->
-	FingerTable = computeList(MyKey,[],0),
-	io:format("fingerTable : ~w ~n", [FingerTable]),
-	%io:format("~w : fait le tour de l'anneau :-p ~n",[MyId]),
+	FingerTable = computeList(MyId,Succ,MyKey,[],0),
+	%io:format(" I AM : ~w fingerTable : ~w ~n", [MyId, FingerTable]),
 	Succ ! {calcFingerTable, MyKey}.
 
 
 
-computeList(Key, B , I) ->   
+computeList(MyId, Succ, Key, B , I) ->   
     if I < 80 ->
-    	%io:format("I : ~w ~n", [I]),
-    	<<KeyAsInt:160/integer>> = Key,
-    	A = (KeyAsInt + trunc(math:pow(2,I-1))) rem trunc(math:pow(2,80)),
-		%io:format("A : ~w  ~n",[A]),
+    	% cle vers integer + calculs
+    	A = (binary:decode_unsigned(Key, big) + erlang:round(math:pow(2, I - 1))) rem erlang:round(math:pow(2, 160)),
+    	% creation de la liste
     	C = [A|B],
-    	%io:format("C : ~w  ~n",[C]),
-    	computeList(Key,C, I+1);
+    	computeList(MyId,Succ,Key,C, I+1);
     	I>=80 ->
     	FingerTableInt = lists:reverse(B),
-		% back to binary
-		FingerTable = lists:map(fun(X) -> term_to_binary(X) end, FingerTableInt),
-    	FingerTable
+    	% back to binary
+		FingerTable = lists:map(fun(X) -> binary:encode_unsigned(X,big) end, FingerTableInt),
+		% ajout du nom du noeud
+		CompleteFingerTable = lists:map(fun(X) -> {X, succ(MyId,X,Succ)} end, FingerTable),
+    	CompleteFingerTable
     end.
+
+succ(MyId, Key, Destinataire) ->
+	MyKey = crypto:sha(term_to_binary(MyId)),
+	lookup(Key,MyId,MyKey,Destinataire),
+	receive
+		{res_lookup,Node} -> 
+		%io:format("dring resultat du look up ~w key is ~w ~n", [Node,Key]),
+		Node
+	end.
 
 
 

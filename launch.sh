@@ -15,13 +15,8 @@ N=length(List),
 test(List,N).
 
 test([X|L],N)->
-    {e,trt@debug} ! {lookup,<<141,186,206,103,134,101,197,13,232,151,223,244,198,14,130,52,173,111,182,83>>,self()},    
-    receive 
-        {res_lookup,Node} -> 
-            io:format("LOOKUP : main receive ~w ~n",[Node])
-    end,			 	
-    {e,trt@debug} ! {calcFT},
-    timer:sleep(1500).
+    {frodo,trt@debug} ! {calcFT},
+    timer:sleep(500).
    
 
 
