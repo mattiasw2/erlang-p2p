@@ -15,7 +15,8 @@ test(List,N).
 
 test([X|L],N)->
     %C=get(L,random:uniform(N-1)),
-    X ! {lookup,<<112,79,249,193,8,230,23,155,171,51,178,67,50,88,239,113,16,164,241,100>>,self()},
+    %io:format("~w ~n",[X]),
+    {e,trt@debug} ! {lookup,<<141,186,206,103,134,101,197,13,232,151,223,244,198,14,130,52,173,111,182,83>>,self()},
     receive 
         {res_lookup,Node} -> 
             io:format(" main receive ~w ~n",[Node])
