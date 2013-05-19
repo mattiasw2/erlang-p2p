@@ -38,13 +38,15 @@ lookup(Key,Who,MyKey,Succ)->
 
 get(Key,Who,MyKey,Succ)->
 	case (between_me_next(Key,MyKey,Succ)) of
-				true  -> Succ ! {getVal,Who};
+				true  -> Succ ! {get_val,Who};
 				false -> Succ ! {get,Key,Who}
 	end.
 
 put(Key,Val,MyKey,Succ)->
 	case (between_me_next(Key,MyKey,Succ)) of
-				true  -> Succ ! {changeVal,Val};
+				true  -> Succ ! {change_val,Val},
+						io:format("~w sends change_val to ~w~n",[Key,Succ]);
+
 				false -> Succ ! {put,Key,Val}
 	end.
 
@@ -57,10 +59,12 @@ wait(MyId,MyKey,MyVal,Pred,Succ)->
 			wait(MyId,MyKey,MyVal,Pred,Succ);
 
 		{get,Key,Who} ->
+		io:format("~w : receive ~w,~w,~w ~n",[MyId,get,Key,Who]),
 			get(Key,Who,MyKey,Succ),
 			wait(MyId,MyKey,MyVal,Pred,Succ);
 			
 		{put,Key,Val} ->
+		io:format("~w : receive ~w,~w,~w ~n",[MyId,put,Key,Val]),
 			put(Key,Val,MyKey,Succ),
 			wait(MyId,MyKey,MyVal,Pred,Succ);
 		%retour des valeurs
@@ -68,5 +72,6 @@ wait(MyId,MyKey,MyVal,Pred,Succ)->
 			Who ! {get_val_res,MyVal},
 			wait(MyId,MyKey,MyVal,Pred,Succ);
 		{change_val,Val} -> 
+		io:format("~w : receive change val ~w ~w ~n",[MyId,put,Val]),
 			wait(MyId,MyKey,Val,Pred,Succ)
 	end.
