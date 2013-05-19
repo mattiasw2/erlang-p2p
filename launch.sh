@@ -19,17 +19,10 @@ test([X|L],N)->
     receive 
         {res_lookup,Node} -> 
             io:format("LOOKUP : main receive ~w ~n",[Node])
-    end,			 
-	{c,trt@debug} ! {put,<<141,186,206,103,134,101,197,13,232,151,223,244,198,14,130,52,173,111,182,83>>,777}, 
-	timer:sleep(500),   
-	{b,trt@debug} ! {get,<<141,186,206,103,134,101,197,13,232,151,223,244,198,14,130,52,173,111,182,83>>,self()}, 
-	timer:sleep(500),
-    receive
-    	{get_val_res,Val} ->
-        io:format("GET : main receive ~w ~n",[Val])
-    end,
-    timer:sleep(500),
-    c:flush().
+    end,			 	
+    {e,trt@debug} ! {calcFT},
+    timer:sleep(1500).
+   
 
 
 
