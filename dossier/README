@@ -5,11 +5,14 @@ Tristan Monédière
 Jonathan Sarton
 Nathalie Möller
 
+
+
 Pour lancer le projet : 
-- exécuter le script launch.sh
+
+1) exécuter le script launch.sh
  en lui passant en paramètre la liste des noeuds
 
-- pour appeler une primitive ajouter un envoi de message dans la fonction test.
+2) pour appeler une primitive ajouter un envoi de message dans la fonction test.
 
 == Lookup
 {noeud, trt@debug} ! {lookup,Key,noeud}
@@ -17,3 +20,27 @@ Pour lancer le projet :
     	{res_lookup,Succ} ->  		% Succ contient le résultat du lookup
     end.
    
+
+== Get
+{noeud, trt@debug} ! {get,Key,Who} 
+	receive
+		{get_val,Who} ->			% get_val contient le résultat du getval
+	end.
+
+
+== Put
+{noeud, trt@debug} ! {put,Key,Val}  
+
+
+== Lancer le calcul des finger tables
+
+{noeud, trt@debug} ! {calcFT, M}	% demande au noeud "noeud" de calculer sa table
+									% tous les autres noeuds la calculeront également
+									
+== Lancer une recherche logrithmique
+
+{noeud, trt@debug} ! {logSearch, Key}	
+									% le résultat est affiché dans le terminal.
+								
+
+
