@@ -1,5 +1,5 @@
 -module(ring).
--export([launch/3,init/3,create/4,go/1]).
+-export([launch/3,init/4,create/4,go/1]).
 
 splice(X,Y) ->
     %io:format("splice Y: ~w, X: ~w ~n",[Y,X]),
@@ -15,22 +15,22 @@ splice(X,Y) ->
         end
     end.
 
-init(Mod,Fun,[{Name,Node},Cle,0]) ->
-    wait(Mod,Fun,[{Name,Node},Cle,0],{Name,Node}).
+init(Mod,Fun,[{Name,Node},Cle,0],FT) ->
+    wait(Mod,Fun,[{Name,Node},Cle,0],{Name,Node},FT).
 
-wait(Mod,Fun,Uid,Next) ->
+wait(Mod,Fun,Uid,Next,FT) ->
     receive
-        {next,Who} -> Who ! Next, wait(Mod,Fun,Uid,Next);
-        {set,NNext,Who} -> Who ! ok, wait(Mod,Fun,Uid,NNext) ;
+        {next,Who} -> Who ! Next, wait(Mod,Fun,Uid,Next,FT);
+        {set,NNext,Who} -> Who ! ok, wait(Mod,Fun,Uid,NNext,FT) ;
         start -> %io:format("~w ~w ~w ~w", [Mod,Fun,Uid,Next]), 
             [Id,Cle,Val] = Uid,
             %io:format("start :  ~w ~w ~w ~n",[Id,Cle,Val]),
-            Mod:Fun(Id,Cle,Val,null,Next)
+            Mod:Fun(Id,Cle,Val,null,Next,FT)
 
     end.
 
 create(Mod,Fun,[{Cle,{Name,Node}}],1) ->
-	Pid = spawn(?MODULE,init,[Mod,Fun,[{Name,Node},Cle,0]]),
+	Pid = spawn(?MODULE,init,[Mod,Fun,[{Name,Node},Cle,0],[]]),
 	%io:format("before register ~w ~n", [Pid]),
 	register(Name,Pid),
 	%{Pid,[Pid]};
