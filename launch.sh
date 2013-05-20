@@ -15,8 +15,9 @@ N=length(List),
 test(List,N).
 
 test([X|L],N)->
-    {frodo,trt@debug} ! {calcFT},
-    timer:sleep(500).
+    			 	
+    {obiwan,trt@debug} ! {calcFT},
+    timer:sleep(4500).
    
 
 
