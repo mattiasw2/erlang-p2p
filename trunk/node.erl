@@ -1,5 +1,5 @@
 -module(node).
--export([wait/5]).
+-export([wait/6]).
 
 % RINGTOP est le + grand index de l'espace de nommage des index
 -define(RINGTOP, trunc(math:pow(2,160)-1)). 
@@ -13,7 +13,7 @@ between_me_next(Key,MyKey, MyNeighbor)->
 	NextKey = crypto:sha(term_to_binary(MyNeighbor)),
 	if
 		MyKey > NextKey ->
-			Key >= MyKey;
+			Key >= MyKey orelse Key < NextKey;
 		MyKey < NextKey->
 		if 
 
@@ -56,38 +56,49 @@ put(Key,Val,MyKey,Succ)->
 
 
 
-calcFingerTable(MyId, MyKey, Succ, Who)->
+calcFingerTable(MyId, MyKey, Succ, Who,FT)->
+	io:format("~w got order ~n", [MyId]),
 	if Who /= MyKey ->
+		io:format("~w order ttmt : is computing ~n", [MyId]),
 		FingerTable = computeList(MyId, Succ, MyKey,[],0),
-		%io:format("I AM : ~w fingerTable : ~w ~n", [MyId,FingerTable]),
-		Succ ! {calcFingerTable, Who}
+		io:format("I AM : ~w and my fingerTable is : ~w ~n", [MyId,FingerTable]),
+		io:format("~w send order to ~w ~n", [MyId, Succ]),
+		Succ ! {calcFingerTable, Who};
+		true -> FT
 	end.
 
 
 initCalcFingerTable(MyId, MyKey,Succ)->
-	FingerTable = computeList(MyId,Succ,MyKey,[],0),
-	%io:format(" I AM : ~w fingerTable : ~w ~n", [MyId, FingerTable]),
+	FingerTable = computeList(MyId,Succ,MyKey,[],1),
+	io:format(" I AM : ~w  and my fingerTable is : ~w ~n", [MyId, FingerTable]),
 	Succ ! {calcFingerTable, MyKey}.
 
 
 
 computeList(MyId, Succ, Key, B , I) ->   
-    if I < 80 ->
-    	% cle vers integer + calculs
-    	A = (binary:decode_unsigned(Key, big) + erlang:round(math:pow(2, I - 1))) rem erlang:round(math:pow(2, 160)),
-    	% creation de la liste
+    if I < 160 ->
+    	% calcul
+    	A = binary:encode_unsigned(
+    		(binary:decode_unsigned(Key, little) + erlang:round(math:pow(2, I - 1))) 
+    		rem erlang:round(math:pow(2, 160)), little),
+
     	C = [A|B],
+    	% appel i+1
     	computeList(MyId,Succ,Key,C, I+1);
-    	I>=80 ->
-    	FingerTableInt = lists:reverse(B),
-    	% back to binary
-		FingerTable = lists:map(fun(X) -> binary:encode_unsigned(X,big) end, FingerTableInt),
-		% ajout du nom du noeud
-		CompleteFingerTable = lists:map(fun(X) -> {X, succ(MyId,X,Succ)} end, FingerTable),
+    	% arrêt
+    	I>=160 ->
+    	FingerTableBin = lists:reverse(B),
+
+    	io:format("I AM  ~w and bla bla SUCC~n", [MyId]),
+
+		CompleteFingerTable = lists:map(fun(X) -> {X, succ(MyId,X,Succ)} end, FingerTableBin),
+		io:format("I AM  ~w and I have FINISHED~n", [MyId]),
+
     	CompleteFingerTable
     end.
 
 succ(MyId, Key, Destinataire) ->
+	%io:format("~w send to ~w ~n",[MyId,Destinataire]),
 	MyKey = crypto:sha(term_to_binary(MyId)),
 	lookup(Key,MyId,MyKey,Destinataire),
 	receive
@@ -98,37 +109,40 @@ succ(MyId, Key, Destinataire) ->
 
 
 
-wait(MyId,MyKey,MyVal,Pred,Succ)->
+wait(MyId,MyKey,MyVal,Pred,Succ,FT)->
 	receive 
 		%primitives
 		{lookup,Key,Who} -> %changer par une fonction plus pratique
-		io:format("~w : receive ~w,~w,~w ~n",[MyId,lookup,Key,Who]),
-		io:format("~w lookup return : ~w~n ",[MyId,lookup(Key,Who,MyKey,Succ) == res_lookup]),
-		wait(MyId,MyKey,MyVal,Pred,Succ);
+			io:format("~w : receive ~w,~w,~w ~n",[MyId,lookup,Key,Who]),
+			io:format("~w lookup return : ~w~n ",[MyId,lookup(Key,Who,MyKey,Succ)]),
+			wait(MyId,MyKey,MyVal,Pred,Succ,FT);
 
 		{get,Key,Who} ->
 		io:format("~w : receive ~w,~w,~w ~n",[MyId,get,Key,Who]),
 		get(Key,Who,MyKey,Succ),
-		wait(MyId,MyKey,MyVal,Pred,Succ);
+		wait(MyId,MyKey,MyVal,Pred,Succ,FT);
 			
 		{put,Key,Val} ->
 		io:format("~w : receive ~w,~w,~w ~n",[MyId,put,Key,Val]),
 		put(Key,Val,MyKey,Succ),
-		wait(MyId,MyKey,MyVal,Pred,Succ);
+		wait(MyId,MyKey,MyVal,Pred,Succ,FT);
 		
 		%retour des valeurs
 		{get_val,Who} -> 
 			Who ! {get_val_res,MyVal},
-			wait(MyId,MyKey,MyVal,Pred,Succ);
+			wait(MyId,MyKey,MyVal,Pred,Succ,FT);
 		{change_val,Val} -> 
 		io:format("~w : receive change val ~w ~w ~n",[MyId,put,Val]),
-			wait(MyId,MyKey,Val,Pred,Succ);
+			wait(MyId,MyKey,Val,Pred,Succ,FT);
 
 		% calcul des fingertables
 		{calcFT} ->
 			io:format("~w : calcFT received ~n",[MyId]),
-			initCalcFingerTable(MyId, MyKey, Succ);
+			FT2 = initCalcFingerTable(MyId, MyKey, Succ),
+			wait(MyId,MyKey,MyVal,Pred,Succ,FT2);
 
 		{calcFingerTable, Who} ->
-			calcFingerTable(MyId, MyKey, Succ, Who)
+			io:format("~w : calcFT received ~n",[MyId]),
+			FT2 = calcFingerTable(MyId, MyKey, Succ, Who,FT),
+			wait(MyId,MyKey,MyVal,Pred,Succ,FT2)
 	end.
