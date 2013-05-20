@@ -16,7 +16,7 @@ test(List,N).
 
 test([X|L],N)->
     			 	
-    {obiwan,trt@debug} ! {calcFT},
+    {obiwan,trt@debug} ! {calcFT, 20},
     timer:sleep(4500).
    
 

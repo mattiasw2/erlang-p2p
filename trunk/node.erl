@@ -54,33 +54,33 @@ put(Key,Val,MyKey,Succ)->
 
 
 
-calcFingerTable(MyId, MyKey, Succ, Who,FT)->
+calcFingerTable(MyId, MyKey, Succ, Who,FT, M)->
 	if Who /= MyKey ->
-		FingerTable = computeList(MyId, Succ, MyKey,[],1),
-		Succ ! {calcFingerTable, Who},
+		FingerTable = computeList(MyId, Succ, MyKey,[],1, M),
+		Succ ! {calcFingerTable, Who, M},
 		FingerTable;
 		true -> FT
 	end.
 
 
-initCalcFingerTable(MyId, MyKey,Succ)->
-	FingerTable = computeList(MyId,Succ,MyKey,[],1),
-	Succ ! {calcFingerTable, MyKey},
+initCalcFingerTable(MyId, MyKey,Succ, M)->
+	FingerTable = computeList(MyId,Succ,MyKey,[],1, M),
+	Succ ! {calcFingerTable, MyKey, M},
 	FingerTable.
 
 
 
-computeList(MyId, Succ, Key, B , I) ->   
-    if I < 160 ->
+computeList(MyId, Succ, Key, B , I, M) ->   
+    if I < M ->
     	% calcul
     	A = binary:encode_unsigned(
     		(binary:decode_unsigned(Key, little) + erlang:round(math:pow(2, I - 1))) 
-    		rem erlang:round(math:pow(2, 160)), little),
+    		rem erlang:round(math:pow(2, M)), little),
     	C = [A|B],
     	% appel i+1
-    	computeList(MyId,Succ,Key,C, I+1);
+    	computeList(MyId,Succ,Key,C, I+1, M);
     	% arrêt
-    	I>=160 ->
+    	I>=M ->
     	FingerTableBin = lists:reverse(B),
 		CompleteFingerTable = lists:map(fun(X) -> {X, succ(MyId,X,Succ)} end, FingerTableBin),
     	CompleteFingerTable
@@ -124,13 +124,13 @@ wait(MyId,MyKey,MyVal,Pred,Succ,FT)->
 			wait(MyId,MyKey,Val,Pred,Succ,FT);
 
 		% calcul des fingertables
-		{calcFT} ->
-			FT2 = initCalcFingerTable(MyId, MyKey, Succ),
+		{calcFT, M} ->
+			FT2 = initCalcFingerTable(MyId, MyKey, Succ, M),
 			wait(MyId,MyKey,MyVal,Pred,Succ,FT2);
 
-		{calcFingerTable, Who} ->
+		{calcFingerTable, Who, M} ->
 			%io:format("~w : 2 calcFT received ~n",[MyId]),
-			FT2 = calcFingerTable(MyId, MyKey, Succ, Who,FT),
+			FT2 = calcFingerTable(MyId, MyKey, Succ, Who,FT, M),
 			io:format("CALC FT :  I am : ~w  and my fingerTable is : ~w ~n", [MyId, FT2]),
 			wait(MyId,MyKey,MyVal,Pred,Succ,FT2)
 	end.
