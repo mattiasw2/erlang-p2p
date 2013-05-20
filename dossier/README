@@ -10,9 +10,13 @@ Nathalie Möller
 Pour lancer le projet : 
 
 1) exécuter le script launch.sh
- en lui passant en paramètre la liste des noeuds
+ce script appelle un autre script de lancement avec une liste de processus
 
-2) pour appeler une primitive ajouter un envoi de message dans la fonction test.
+2) le script fourni effectue successivement un lookup, un put, un get, 
+le calcul des finger tables et une recherche logarithmique.
+Pour faire des modifications, appeler une primitive par exemple, il faut 
+modifier le fichier launchErlang.sh il faut ajouter un envoi de message 
+dans la fonction test.
 
 == Lookup
 {noeud, trt@debug} ! {lookup,Key,noeud}
