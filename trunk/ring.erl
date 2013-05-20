@@ -1,5 +1,5 @@
 -module(ring).
--export([launch/3,init/4,create/4,go/1]).
+-export([launch/3,init/4,create/4,go/1,aff/1]).
 
 splice(X,Y) ->
     %io:format("splice Y: ~w, X: ~w ~n",[Y,X]),
