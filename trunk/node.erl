@@ -36,42 +36,37 @@ between_me_next(Key,MyKey, MyNeighbor)->
 
 lookup(Key,Who,MyKey,Succ)->
 	case (between_me_next(Key,MyKey,Succ)) of
-				true  -> Who ! {res_lookup,Succ},true;
-				false -> Succ ! {lookup,Key,Who},false
+		true  -> Who ! {res_lookup,Succ},true;
+		false -> Succ ! {lookup,Key,Who},false
 	end.
 
 get(Key,Who,MyKey,Succ)->
 	case (between_me_next(Key,MyKey,Succ)) of
-				true  -> Succ ! {get_val,Who};
-				false -> Succ ! {get,Key,Who}
+		true  -> Succ ! {get_val,Who};
+		false -> Succ ! {get,Key,Who}
 	end.
 
 put(Key,Val,MyKey,Succ)->
 	case (between_me_next(Key,MyKey,Succ)) of
-				true  -> Succ ! {change_val,Val},
-						io:format("~w sends change_val to ~w~n",[Key,Succ]);
-
-				false -> Succ ! {put,Key,Val}
+		true  -> Succ ! {change_val,Val};	
+		false -> Succ ! {put,Key,Val}
 	end.
 
 
 
 calcFingerTable(MyId, MyKey, Succ, Who,FT)->
-	io:format("~w got order ~n", [MyId]),
 	if Who /= MyKey ->
-		io:format("~w order ttmt : is computing ~n", [MyId]),
-		FingerTable = computeList(MyId, Succ, MyKey,[],0),
-		io:format("I AM : ~w and my fingerTable is : ~w ~n", [MyId,FingerTable]),
-		io:format("~w send order to ~w ~n", [MyId, Succ]),
-		Succ ! {calcFingerTable, Who};
+		FingerTable = computeList(MyId, Succ, MyKey,[],1),
+		Succ ! {calcFingerTable, Who},
+		FingerTable;
 		true -> FT
 	end.
 
 
 initCalcFingerTable(MyId, MyKey,Succ)->
 	FingerTable = computeList(MyId,Succ,MyKey,[],1),
-	io:format(" I AM : ~w  and my fingerTable is : ~w ~n", [MyId, FingerTable]),
-	Succ ! {calcFingerTable, MyKey}.
+	Succ ! {calcFingerTable, MyKey},
+	FingerTable.
 
 
 
@@ -81,21 +76,16 @@ computeList(MyId, Succ, Key, B , I) ->
     	A = binary:encode_unsigned(
     		(binary:decode_unsigned(Key, little) + erlang:round(math:pow(2, I - 1))) 
     		rem erlang:round(math:pow(2, 160)), little),
-
     	C = [A|B],
     	% appel i+1
     	computeList(MyId,Succ,Key,C, I+1);
     	% arrêt
     	I>=160 ->
     	FingerTableBin = lists:reverse(B),
-
-    	io:format("I AM  ~w and bla bla SUCC~n", [MyId]),
-
 		CompleteFingerTable = lists:map(fun(X) -> {X, succ(MyId,X,Succ)} end, FingerTableBin),
-		io:format("I AM  ~w and I have FINISHED~n", [MyId]),
-
     	CompleteFingerTable
     end.
+
 
 succ(MyId, Key, Destinataire) ->
 	%io:format("~w send to ~w ~n",[MyId,Destinataire]),
@@ -103,7 +93,6 @@ succ(MyId, Key, Destinataire) ->
 	lookup(Key,MyId,MyKey,Destinataire),
 	receive
 		{res_lookup,Node} -> 
-		%io:format("dring resultat du look up ~w key is ~w ~n", [Node,Key]),
 		Node
 	end.
 
@@ -113,8 +102,7 @@ wait(MyId,MyKey,MyVal,Pred,Succ,FT)->
 	receive 
 		%primitives
 		{lookup,Key,Who} -> %changer par une fonction plus pratique
-			io:format("~w : receive ~w,~w,~w ~n",[MyId,lookup,Key,Who]),
-			io:format("~w lookup return : ~w~n ",[MyId,lookup(Key,Who,MyKey,Succ)]),
+			lookup(Key,Who,MyKey,Succ),
 			wait(MyId,MyKey,MyVal,Pred,Succ,FT);
 
 		{get,Key,Who} ->
@@ -137,12 +125,12 @@ wait(MyId,MyKey,MyVal,Pred,Succ,FT)->
 
 		% calcul des fingertables
 		{calcFT} ->
-			io:format("~w : calcFT received ~n",[MyId]),
 			FT2 = initCalcFingerTable(MyId, MyKey, Succ),
 			wait(MyId,MyKey,MyVal,Pred,Succ,FT2);
 
 		{calcFingerTable, Who} ->
-			io:format("~w : calcFT received ~n",[MyId]),
+			%io:format("~w : 2 calcFT received ~n",[MyId]),
 			FT2 = calcFingerTable(MyId, MyKey, Succ, Who,FT),
+			io:format("CALC FT :  I am : ~w  and my fingerTable is : ~w ~n", [MyId, FT2]),
 			wait(MyId,MyKey,MyVal,Pred,Succ,FT2)
 	end.
