@@ -16,4 +16,6 @@ fi
 
 cd ../../
 chmod 777 launchErlang.sh
+killall epmd
 ./launchErlang.sh alpha bravo charlie delta echo foxtrott golf hotel india juliette kilo lima mike november oscar papa quebec romeo
+
