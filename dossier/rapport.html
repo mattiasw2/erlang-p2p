@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+<META NAME="generator" CONTENT="http://txt2tags.org">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<TITLE>ALGORITHMIQUE REPARTIE - De Peer en peer</TITLE>
+</HEAD><BODY BGCOLOR="white" TEXT="black">
+<CENTER>
+<H1>ALGORITHMIQUE REPARTIE - De Peer en peer</H1>
+<FONT SIZE="4"><I>Groupe beef : Tristan Monédière - Jonathan Sarton - Nathalie Möller</I></FONT><BR>
+<FONT SIZE="4">05/20/2013</FONT>
+</CENTER>
+
+<P></P>
+<HR NOSHADE SIZE=1>
+<P></P>
+
+  <OL>
+  <LI><A HREF="#toc1">Jalon 1 Simple Lookup</A>
+    <UL>
+    <LI><A HREF="#toc2">1.1. Création de l'anneau</A>
+    <LI><A HREF="#toc3">1.2. Primitives de Base</A>
+      <UL>
+      <LI><A HREF="#toc4">1.2.1. lookup</A>
+      <LI><A HREF="#toc5">1.2.2. put</A>
+      </UL>
+    <LI><A HREF="#toc6">1.3. Système de journalisation</A>
+    <LI><A HREF="#toc7">1.4. Programme de visualisation</A>
+    </UL>
+  <LI><A HREF="#toc8">Jalon 2 Scalable Lookup</A>
+    <UL>
+    <LI><A HREF="#toc9">2.1. Finger table</A>
+    <LI><A HREF="#toc10">2.2. Recherche Logarithmique</A>
+      <UL>
+      <LI><A HREF="#toc11">2.2.1. L'algorithme</A>
+      <LI><A HREF="#toc12">2.2.2. L'implantation</A>
+      </UL>
+    </UL>
+  </OL>
+
+<P></P>
+<HR NOSHADE SIZE=1>
+<P></P>
+<P>
+<U>Objectif</U> : découvrir les tables de hachage distribuées en développant un système pair à pair décentralisé.
+</P>
+
+<A NAME="toc1"></A>
+<H1>1. Jalon 1 Simple Lookup</H1>
+
+<A NAME="toc2"></A>
+<H2>1.1. Création de l'anneau</H2>
+
+<P>
+Nous avons écrit un script qui permet de lancer la création de l'anneau.
+Pour l'utiliser il faut lui passer la liste des noms de noeuds que l'on souhaite mettre en place.
+</P>
+<P>
+Ce script lance la fonction principale main.
+Celle-ci reçoit une liste de chaînes de caractères passées en puis appelle la fonction launch du module ring.
+</P>
+<P>
+Launch crée une liste d'éléments contenant un nom, un noeud, une clé, génère les clés hachées en fonction des identifiants de chacun des noeuds, et trie la liste obtenue en fonction de ces clés. Ensuite c'est la fonction create qui est appelée et qui permet de créér l'anneau de processus.
+</P>
+<P>
+Create appelle la fonction spawn pour créer le noeud, register pour l'enregistrer. 
+Nous utilisons la fonction splice pour effectuer les fusions l'anneau de taille 1 avec les anneaux de taille n-1.
+Lorsque le noeud est créé il exécute la fonction init qui appelle la fonction wait.
+Lorsque les noeuds ont reçus le message start ils passent dans la fonction d'attente du module node.erl.
+</P>
+<P>
+La fonction wait de ce dernier module sert à appeler des fonctions suivant les messages reçus.
+Après avoir effectué cette fonction, le noeud est remis en mode wait. 
+</P>
+
+<A NAME="toc3"></A>
+<H2>1.2. Primitives de Base</H2>
+
+<A NAME="toc4"></A>
+<H3>1.2.1. lookup</H3>
+
+<P>
+Cette primitive implémente le simple lookup. Elle teste si la clé recherchée se situe entre le noeud courant et son successeur.
+Si c'est le cas, elle informe le noeud à l'origine de la recherche que son successeur le mainteneur du noeud recherché.
+Sinon, elle demande au successeur de continuer la recherche.
+</P>
+<P>
+=== get ====
+Get utilise le simple lookup pour trouver le mainteneur de le clé recherché et retourne par message la valeur de ce noeud.
+</P>
+
+<A NAME="toc5"></A>
+<H3>1.2.2. put</H3>
+
+<P>
+Put utilise également le simple lookup, puis ordonne au noeud de remplacer sa valeur par le paramètre reçu via le put.
+</P>
+
+<A NAME="toc6"></A>
+<H2>1.3. Système de journalisation</H2>
+
+<A NAME="toc7"></A>
+<H2>1.4. Programme de visualisation</H2>
+
+<A NAME="toc8"></A>
+<H1>2. Jalon 2 Scalable Lookup</H1>
+
+<A NAME="toc9"></A>
+<H2>2.1. Finger table</H2>
+
+<P>
+Le calcul des Finger Tables est lancé avec l'envoi du message {calcFT, M} à l'un des noeuds du réseau.
+Le paramètre M désigne le nombre d'entrées qui seront présentes dans la table.
+Le noeud qui reçoit le message calcule sa table, puis envoie un message à son suivant afin qu'il la calcule également, et ainsi de suite.
+Le calcul s'arrête lorsque tous les noeuds ont effectué leurs calculs.
+</P>
+
+<UL>
+<LI>calcul de la Finger Table
+Pour calculer les entrées de la finger table nous avons utilisé la formule suivante : 
+<P></P>
+</UL>
+
+<TABLE BORDER="1" CELLPADDING="4">
+<TR>
+<TH>i</TH>
+<TH>Clé</TH>
+<TH>Noeud</TH>
+</TR>
+<TR>
+<TD>0</TD>
+<TD ALIGN="center">n+ 2^0</TD>
+<TD>succ( 2^0   % (2^M))</TD>
+</TR>
+<TR>
+<TD>1</TD>
+<TD ALIGN="center">n+ 2^1</TD>
+<TD>succ( 2^1   % (2^M))</TD>
+</TR>
+<TR>
+<TD>2</TD>
+<TD ALIGN="center">n+ 2^2</TD>
+<TD>succ( 2^2   % (2^M))</TD>
+</TR>
+<TR>
+<TD ALIGN="center">-</TD>
+<TD ALIGN="center">-</TD>
+<TD ALIGN="center">-</TD>
+</TR>
+<TR>
+<TD>M - 1</TD>
+<TD ALIGN="right">n+ 2^M-1</TD>
+<TD>succ( 2^(M-1)   % (2^M))</TD>
+</TR>
+</TABLE>
+
+<P>
+Chaque dispose donc d'une table de routage pour M clés situées à une distance à chaque fois multipliée par deux.
+</P>
+
+<A NAME="toc10"></A>
+<H2>2.2. Recherche Logarithmique</H2>
+
+<A NAME="toc11"></A>
+<H3>2.2.1. L'algorithme</H3>
+
+<P>
+Lorsqu'un noeud effectue une recherche logarithmique, il regarde dans sa finger table quel est le noeud précédant l'id 
+recherché le + proche de lui. Si c'est lui-même la recherche est terminée, sinon, il demande au noeud en question de poursuivre la recherche.
+Le noeud doit donc être trouvé en au plus log(n) itérations.
+</P>
+
+<A NAME="toc12"></A>
+<H3>2.2.2. L'implantation</H3>
+
+<P>
+Nous avons utilisé 3 fonctions :
+</P>
+
+<UL>
+<LI>la première, find_successor, appelle find_predecessor puis renvoie le successeur du prédecesseur, soit le résultat.
+<LI>la seconde, find_predecessor, teste si la clé recherchée se situe entre le noeud actuel et son successeur. 
+Si tel est le cas : elle retourne ce noeud, sinon elle lance un appel sur closest_preceding_finger
+<LI>la troisième, closest_preceding_finger, consulte la finger table du noeud courant et retourne le noeud qui se situe 
+entre lui-même et l'id recherché. C'est cette fonction qui permet de passer la recherche à un noeud situé plus près de l'objectif.
+</UL>
+
+<!-- html code generated by txt2tags 2.6 (http://txt2tags.org) -->
+<!-- cmdline: txt2tags -t html rapport.t2t -->
+</BODY></HTML>

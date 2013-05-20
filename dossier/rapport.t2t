@@ -1,0 +1,89 @@
+ALGORITHMIQUE REPARTIE - De Peer en peer
+Groupe beef : Tristan Monédière - Jonathan Sarton - Nathalie Möller
+%%mtime(%m/%d/%Y)
+%!Encoding: utf-8
+%!options: -n --toc
+
+__Objectif__ : découvrir les tables de hachage distribuées en développant un système pair à pair décentralisé.
+
+
+=  Jalon 1 Simple Lookup  =
+
+== Création de l'anneau ==
+
+Nous avons écrit un script qui permet de lancer la création de l'anneau.
+Pour l'utiliser il faut lui passer la liste des noms de noeuds que l'on souhaite mettre en place.
+
+Ce script lance la fonction principale main.
+Celle-ci reçoit une liste de chaînes de caractères passées en puis appelle la fonction launch du module ring.
+
+Launch crée une liste d'éléments contenant un nom, un noeud, une clé, génère les clés hachées en fonction des identifiants de chacun des noeuds, et trie la liste obtenue en fonction de ces clés. Ensuite c'est la fonction create qui est appelée et qui permet de créér l'anneau de processus.
+
+Create appelle la fonction spawn pour créer le noeud, register pour l'enregistrer. 
+Nous utilisons la fonction splice pour effectuer les fusions l'anneau de taille 1 avec les anneaux de taille n-1.
+Lorsque le noeud est créé il exécute la fonction init qui appelle la fonction wait.
+Lorsque les noeuds ont reçus le message start ils passent dans la fonction d'attente du module node.erl.
+
+La fonction wait de ce dernier module sert à appeler des fonctions suivant les messages reçus.
+Après avoir effectué cette fonction, le noeud est remis en mode wait. 
+
+== Primitives de Base ==
+
+=== lookup ===
+Cette primitive implémente le simple lookup. Elle teste si la clé recherchée se situe entre le noeud courant et son successeur.
+Si c'est le cas, elle informe le noeud à l'origine de la recherche que son successeur le mainteneur du noeud recherché.
+Sinon, elle demande au successeur de continuer la recherche.
+
+
+=== get ====
+Get utilise le simple lookup pour trouver le mainteneur de le clé recherché et retourne par message la valeur de ce noeud.
+
+
+=== put ===
+Put utilise également le simple lookup, puis ordonne au noeud de remplacer sa valeur par le paramètre reçu via le put.
+
+
+== Système de journalisation ==
+
+== Programme de visualisation ==
+
+
+= Jalon 2 Scalable Lookup  =
+
+== Finger table ==
+
+Le calcul des Finger Tables est lancé avec l'envoi du message {calcFT, M} à l'un des noeuds du réseau.
+Le paramètre M désigne le nombre d'entrées qui seront présentes dans la table.
+Le noeud qui reçoit le message calcule sa table, puis envoie un message à son suivant afin qu'il la calcule également, et ainsi de suite.
+Le calcul s'arrête lorsque tous les noeuds ont effectué leurs calculs.
+
+- calcul de la Finger Table
+Pour calculer les entrées de la finger table nous avons utilisé la formule suivante : 
+
+|| i    |  Clé      | Noeud                    |
+| 0     |  n+ 2^0   | succ( 2^0   % (2^M))     |
+| 1     |  n+ 2^1   | succ( 2^1   % (2^M))     |
+| 2     |  n+ 2^2   | succ( 2^2   % (2^M))     |
+|   -   |     -     |             -            |
+| M - 1 |  n+ 2^M-1 | succ( 2^(M-1)   % (2^M)) |
+
+Chaque dispose donc d'une table de routage pour M clés situées à une distance à chaque fois multipliée par deux.
+
+
+== Recherche Logarithmique ==
+
+=== L'algorithme ===
+Lorsqu'un noeud effectue une recherche logarithmique, il regarde dans sa finger table quel est le noeud précédant l'id 
+recherché le + proche de lui. Si c'est lui-même la recherche est terminée, sinon, il demande au noeud en question de poursuivre la recherche.
+Le noeud doit donc être trouvé en au plus log(n) itérations.
+
+=== L'implantation ===
+Nous avons utilisé 3 fonctions :
+- la première, find_successor, appelle find_predecessor puis renvoie le successeur du prédecesseur, soit le résultat.
+- la seconde, find_predecessor, teste si la clé recherchée se situe entre le noeud actuel et son successeur. 
+Si tel est le cas : elle retourne ce noeud, sinon elle lance un appel sur closest_preceding_finger
+- la troisième, closest_preceding_finger, consulte la finger table du noeud courant et retourne le noeud qui se situe 
+entre lui-même et l'id recherché. C'est cette fonction qui permet de passer la recherche à un noeud situé plus près de l'objectif.
+
+
+

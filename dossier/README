@@ -1,0 +1,19 @@
+ALGORITHMIQUE REPARTIE
+De Peer en peer
+Groupe beef : 
+Tristan Monédière 
+Jonathan Sarton
+Nathalie Möller
+
+Pour lancer le projet : 
+- exécuter le script launch.sh
+ en lui passant en paramètre la liste des noeuds
+
+- pour appeler une primitive ajouter un envoi de message dans la fonction test.
+
+== Lookup
+{noeud, trt@debug} ! {lookup,Key,noeud}
+	receive
+    	{res_lookup,Succ} ->  		% Succ contient le résultat du lookup
+    end.
+   
